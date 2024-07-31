@@ -22,7 +22,7 @@ import (
 //   vdata: (size,data)       -- value data, string data
 
 // useSharedNames will results in smaller memory usage by sharing the names
-// of fields using the sstring package. Otherwise the names are embeded with
+// of fields using the sstring package. Otherwise the names are embedded with
 // the list.
 const useSharedNames = true
 

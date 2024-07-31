@@ -216,7 +216,7 @@ func (s *Server) followCheckSome(addr string, followc int, auth string,
 		return pos, nil
 	}
 	log.Warnf("truncating aof to %d", pos)
-	// any errror below are fatal.
+	// any error below are fatal.
 	s.aof.Close()
 	if err := os.Truncate(fname, pos); err != nil {
 		log.Fatalf("could not truncate aof, possible data loss. %s", err.Error())

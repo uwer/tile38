@@ -140,6 +140,24 @@ func (conn *KafkaConn) Send(msg string) error {
 			}
 
 			cfg.Net.TLS.Config = &tlsConfig
+		case "none":
+			// This path allows to either provide a custom ca certificate
+			// or, because RootCAs is nil, is using the hosts ca set
+			// to verify the server certificate
+			if conn.ep.Kafka.SSL {
+				tlsConfig := tls.Config{}
+
+				if conn.ep.Kafka.CACertFile != "" {
+					caCertPool, err := loadRootTLSCert(conn.ep.Kafka.CACertFile)
+					if err != nil {
+						return err
+					}
+					tlsConfig.RootCAs = &caCertPool
+				}
+
+				cfg.Net.TLS.Enable = true
+				cfg.Net.TLS.Config = &tlsConfig
+			}
 		}
 
 		c, err := sarama.NewSyncProducer([]string{uri}, cfg)

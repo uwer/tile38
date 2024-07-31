@@ -1,4 +1,4 @@
-## Tile38 Integation Testing
+## Tile38 Integration Testing
 
 - Uses Redis protocol
 - The Tile38 data is flushed before every `DoBatch`

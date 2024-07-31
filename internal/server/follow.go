@@ -169,15 +169,19 @@ func (s *Server) followHandleCommand(args []string, followc int, w io.Writer) (i
 		return s.aofsz, errNoLongerFollowing
 	}
 	msg := &Message{Args: args}
-
 	_, d, err := s.command(msg, nil)
 	if err != nil {
 		if commandErrIsFatal(err) {
 			return s.aofsz, err
 		}
 	}
-	if err := s.writeAOF(args, &d); err != nil {
-		return s.aofsz, err
+	switch msg.Command() {
+	case "publish":
+		// Avoid writing these commands to the AOF
+	default:
+		if err := s.writeAOF(args, &d); err != nil {
+			return s.aofsz, err
+		}
 	}
 	if len(s.aofbuf) > 10240 {
 		s.flushAOF(false)

@@ -66,12 +66,16 @@ func (s *Server) Publish(channel string, message ...string) int {
 	}
 	s.pubsub.mu.RUnlock()
 
+	// broadcast to clients
 	for _, msg := range msgs {
 		msg.target.cond.L.Lock()
 		msg.target.msgs = append(msg.target.msgs, msg)
 		msg.target.cond.Broadcast()
 		msg.target.cond.L.Unlock()
 	}
+
+	// Broadcast to followers
+	s.sendPublishQueue(channel, message...)
 
 	return len(msgs)
 }
@@ -205,6 +209,25 @@ func (s *Server) liveSubscription(
 			write([]byte("+OK\r\n"))
 		}
 	}
+	writePing := func(m *Message) {
+		switch outputType {
+		case JSON:
+			if len(m.Args) > 1 {
+				write([]byte(`{"ok":true,"ping":` + jsonString(m.Args[1]) + `,"elapsed":"` + time.Since(start).String() + `"}`))
+			} else {
+				write([]byte(`{"ok":true,"ping":"pong","elapsed":"` + time.Since(start).String() + `"}`))
+			}
+		case RESP:
+			data := redcon.AppendArray(nil, 2)
+			data = redcon.AppendBulkString(data, "PONG")
+			if len(m.Args) > 1 {
+				data = redcon.AppendBulkString(data, m.Args[1])
+			} else {
+				data = redcon.AppendBulkString(data, "")
+			}
+			write(data)
+		}
+	}
 	writeWrongNumberOfArgsErr := func(command string) {
 		switch outputType {
 		case JSON:
@@ -335,6 +358,9 @@ func (s *Server) liveSubscription(
 			case "quit":
 				writeOK()
 				return nil
+			case "ping":
+				writePing(msg)
+				continue
 			case "psubscribe":
 				kind, un = pubsubPattern, false
 			case "punsubscribe":

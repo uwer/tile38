@@ -130,5 +130,6 @@ func TestWeight(t *testing.T) {
 }
 
 func TestNumber(t *testing.T) {
-	assert.Assert(ValueOf("012").Num() == 12)
+	assert.Assert(ValueOf("12").Num() == 12)
+	assert.Assert(ValueOf("012").Num() == 0)
 }

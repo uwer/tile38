@@ -63,7 +63,7 @@ func TestList(t *testing.T) {
 	})
 	assert.Assert(names == "fellohellojellonello")
 	assert.Assert(datas == "123456789012")
-	assert.Assert(nums == 1380)
+	assert.Assert(nums == 1368)
 
 	names = ""
 	datas = ""

@@ -2,6 +2,48 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.33.1] = 2024-07-02
+### Fixed
+- 193bce1: Fix followers not receiving channel messages #468 (@hibooboo2, @trendstate, @DoisKoh)
+
+## [1.33.0] = 2024-05-03
+## Added
+- #726: Add EXIST and FEXIST command (@Kilowhisky)
+
+## Fixed
+- #738: Add support for CORS in http requests (@Kilowhisky)
+- #741: FSET transforms field names to lowercase (@unendingblue, @iwpnd)
+- #736: Fix field floating point parsing misrepresentation (@Kilowhisky)
+
+## Updated
+- #733: golang.org/x/net
+- #724: google.golang.org/protobuf
+
+## [1.32.2] = 2024-02-14
+### Fixed
+- #714: Fix crash when mixing z-coord dimensionality in a geometry (@prathik)
+- #717: Metric expired_keys never incremented (@undeadcat)
+- Updated Go runtime to 1.22
+
+## [1.32.1] = 2023-11-20
+### Fixed
+- #711: Updated dependencies to address security vulnerabilities (@hcmf-wice)
+- #706: Add support for 'none' authentication for kafka while still allowing SSL (@Kilowhisky)
+- #702: Fix AWS SQS base domain parsing for China region (@LLluma)
+
+## [1.32.0] = 2023-07-31
+### Added
+- #686: Support the ROLE command (@Kilowhisky)
+
+### Fixed
+- #698: Allow AUTH while loading data (@Kilowhisky)
+- #694: Allow PING in pubsub (@Kilowhisky)
+- #692: Properly support replica_announce properties (@Kilowhisky)
+- #691: HEALTHZ should not be AUTH protected (@Kilowhisky)
+- #685: Heap size not coming down after objects are removed (@Mukund2900, @iwpnd)
+- 0144ca6: Fix missing lock
+
+
 ## [1.31.0] = 2023-05-09
 ### Added
 - #682: Enables cross platform building and pushing of docker images (arm64/amd64) (@eelcocramer)

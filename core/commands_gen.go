@@ -314,6 +314,42 @@ var commandsJSON = `{
     "since": "1.0.0",
     "group": "keys"
   },
+  "EXISTS": {
+    "summary": "Checks to see if a id exists",
+    "complexity": "O(1)",
+    "arguments": [
+      {
+        "name": "key",
+        "type": "string"
+      },
+      {
+        "name": "id",
+        "type": "string"
+      }
+    ],
+    "since": "1.33.0",
+    "group": "keys"
+  },
+  "FEXISTS": {
+    "summary": "Checks to see if a field exists on a id",
+    "complexity": "O(1)",
+    "arguments": [
+      {
+        "name": "key",
+        "type": "string"
+      },
+      {
+        "name": "id",
+        "type": "string"
+      },
+      {
+        "name": "field",
+        "type": "string"
+      }
+    ],
+    "since": "1.33.0",
+    "group": "keys"
+  },
   "PERSIST": {
     "summary": "Remove the existing timeout on an id",
     "complexity": "O(1)",
@@ -360,6 +396,26 @@ var commandsJSON = `{
       }
     ],
     "since": "1.0.0",
+    "group": "keys"
+  },
+  "FGET": {
+    "summary": "Gets the value for the field of an id",
+    "complexity": "O(1)",
+    "arguments": [
+      {
+        "name": "key",
+        "type": "string"
+      },
+      {
+        "name": "id",
+        "type": "string"
+      },
+      {
+        "name": "field",
+        "type": "string"
+      }
+    ],
+    "since": "1.33.0",
     "group": "keys"
   },
   "BOUNDS": {

@@ -92,13 +92,7 @@ func (s *Server) Collect(ch chan<- prometheus.Metric) {
 	s.extStats(m)
 
 	for metric, descr := range metricDescriptions {
-		val, ok := m[metric].(float64)
-		if !ok {
-			val2, ok2 := m[metric].(int)
-			if ok2 {
-				val, ok = float64(val2), true
-			}
-		}
+		val, ok := toFloat(m[metric])
 		if ok {
 			ch <- prometheus.MustNewConstMetric(descr, prometheus.GaugeValue, val)
 		}
@@ -154,4 +148,32 @@ func (s *Server) Collect(ch chan<- prometheus.Metric) {
 		)
 		return true
 	})
+}
+
+func toFloat(val interface{}) (float64, bool) {
+	switch v := val.(type) {
+	case float64:
+		return v, true
+	case int64:
+		return float64(v), true
+	case uint64:
+		return float64(v), true
+	case float32:
+		return float64(v), true
+	case int:
+		return float64(v), true
+	case int32:
+		return float64(v), true
+	case uint32:
+		return float64(v), true
+	case int16:
+		return float64(v), true
+	case uint16:
+		return float64(v), true
+	case int8:
+		return float64(v), true
+	case uint8:
+		return float64(v), true
+	}
+	return 0, false
 }

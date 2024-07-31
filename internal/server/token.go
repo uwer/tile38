@@ -354,7 +354,7 @@ func (s *Server) parseSearchScanBaseTokens(
 					valArr[i] = field.ValueOf(valStr)
 				}
 				t.whereins = append(t.whereins, whereinT{
-					name:   strings.ToLower(name),
+					name:   name,
 					valArr: valArr,
 				})
 				continue

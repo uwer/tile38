@@ -841,8 +841,8 @@ func (s *Server) cmdFSET(msg *Message) (resp.Value, commandDetails, error) {
 	}
 	key, id = args[1], args[2]
 	for i := 3; i < len(args); i++ {
-		arg := strings.ToLower(args[i])
-		switch arg {
+		arg := args[i]
+		switch strings.ToLower(arg) {
 		case "xx":
 			xx = true
 		default:
@@ -905,6 +905,46 @@ func (s *Server) cmdFSET(msg *Message) (resp.Value, commandDetails, error) {
 	}
 
 	return res, d, nil
+}
+
+// FGET key id field
+func (s *Server) cmdFGET(msg *Message) (resp.Value, error) {
+	start := time.Now()
+
+	// >> Args
+
+	args := msg.Args
+
+	if len(args) < 4 {
+		return retrerr(errInvalidNumberOfArguments)
+	}
+	key, id, field := args[1], args[2], args[3]
+
+	// >> Operation
+
+	col, _ := s.cols.Get(key)
+	if col == nil {
+		return retrerr(errKeyNotFound)
+	}
+	o := col.Get(id)
+	if o == nil {
+		return retrerr(errIDNotFound)
+	}
+	f := o.Fields().Get(field)
+
+	// >> Response
+
+	var buf bytes.Buffer
+	switch msg.OutputType {
+	case JSON:
+		buf.WriteString(`{"ok":true`)
+		buf.WriteString(`,"value":` + f.Value().JSON())
+		buf.WriteString(`,"elapsed":"` + time.Since(start).String() + "\"}")
+		return resp.StringValue(buf.String()), nil
+	case RESP:
+		return resp.StringValue(f.Value().Data()), nil
+	}
+	return NOMessage, nil
 }
 
 // EXPIRE key id seconds
@@ -1079,4 +1119,73 @@ func (s *Server) cmdTTL(msg *Message) (resp.Value, error) {
 				time.Since(start).String() + "\"}"), nil
 	}
 	return resp.IntegerValue(int(ttl)), nil
+}
+
+// EXISTS key id
+func (s *Server) cmdEXISTS(msg *Message) (resp.Value, error) {
+	start := time.Now()
+
+	// >> Args
+
+	args := msg.Args
+	if len(args) != 3 {
+		return retrerr(errInvalidNumberOfArguments)
+	}
+	key, id := args[1], args[2]
+
+	// >> Operation
+
+	col, _ := s.cols.Get(key)
+	if col == nil {
+		return retrerr(errKeyNotFound)
+	}
+
+	o := col.Get(id)
+	exists := o != nil
+
+	// >> Response
+
+	if msg.OutputType == JSON {
+		return resp.SimpleStringValue(
+			`{"ok":true,"exists":` + strconv.FormatBool(exists) + `,"elapsed":"` +
+				time.Since(start).String() + "\"}"), nil
+	}
+	return resp.BoolValue(exists), nil
+}
+
+// FEXISTS key id field
+func (s *Server) cmdFEXISTS(msg *Message) (resp.Value, error) {
+	start := time.Now()
+
+	// >> Args
+
+	args := msg.Args
+	if len(args) != 4 {
+		return retrerr(errInvalidNumberOfArguments)
+	}
+	key, id, field := args[1], args[2], args[3]
+
+	// >> Operation
+
+	col, _ := s.cols.Get(key)
+	if col == nil {
+		return retrerr(errKeyNotFound)
+	}
+
+	o := col.Get(id)
+	if o == nil {
+		return retrerr(errIDNotFound)
+	}
+
+	f := o.Fields().Get(field)
+	exists := f.Name() != ""
+
+	// >> Response
+
+	if msg.OutputType == JSON {
+		return resp.SimpleStringValue(
+			`{"ok":true,"exists":` + strconv.FormatBool(exists) + `,"elapsed":"` +
+				time.Since(start).String() + "\"}"), nil
+	}
+	return resp.BoolValue(exists), nil
 }

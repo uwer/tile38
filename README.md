@@ -1,13 +1,14 @@
 <p align="center">
-  <a href="https://tile38.com"><img 
-    src="/.github/images/logo-light.svg" 
-    width="284" border="0" alt="Tile38"></a>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="/.github/images/logo-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="/.github/images/logo-light.svg">
+  <img alt="Tile38" src="/.github/images/logo-light.svg" width="284">
+</picture>
 </p>
 <p align="center">
 <a href="https://tile38.com/slack/"><img src="https://img.shields.io/badge/slack-channel-orange.svg" alt="Slack Channel"></a>
 <a href="https://hub.docker.com/r/tile38/tile38"><img src="https://img.shields.io/docker/pulls/tile38/tile38.svg" alt="Docker Pulls"></a>
 </p>
-
 
 Tile38 is an open source (MIT licensed), in-memory geolocation data store, spatial index, and realtime geofencing server.
 It supports a variety of object types including lat/lon points, bounding boxes, XYZ tiles, Geohashes, and GeoJSON. 
@@ -144,6 +145,11 @@ To set a field when an object already exists:
 > fset fleet truck1 speed 90
 ```
 
+To get a field when an object already exists:
+```
+> fget fleet truck1 speed
+```
+
 ## Searching
 
 Tile38 has support to search for objects and points that are within or intersects other objects. All object types can be searched including Polygons, MultiPolygons, GeometryCollections, etc.
@@ -223,7 +229,7 @@ These can be used when establishing a geofence, to pre-filter responses. For ins
 
 ### Pub/sub channels
 
-Tile38 supports delivering geofence notications over pub/sub channels. 
+Tile38 supports delivering geofence notifications over pub/sub channels. 
 
 To create a static geofence that sends notifications when a bus is within 200 meters of a point and sends to the `busstop` channel:
 
@@ -318,7 +324,7 @@ Clients that support most Tile38 features are marked with a ⭐️.
 - ⭐️ Go: [xjem/t38c](https://github.com/xjem/t38c)
 - ⭐️ Node.js: [node-tile38](https://github.com/phulst/node-tile38) ([example code](https://github.com/tidwall/tile38/wiki/Node.js-example-(node-tile38)))
 - ⭐️ Python: [pyle38](https://github.com/iwpnd/pyle38)
-- ⭐️ TypeScript: [tile38-ts](https://github.com/tiermobility/tile38-ts)
+- ⭐️ TypeScript: [tile38-ts](https://github.com/iwpnd/tile38-ts)
 - Go: [cjkreklow/t38c](https://github.com/cjkreklow/t38c)
 - Python: [pytile38](https://github.com/mitghi/pytile38)
 - Rust: [nazar](https://github.com/younisshah/nazar)

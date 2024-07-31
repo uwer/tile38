@@ -57,6 +57,7 @@ func TestIntegration(t *testing.T) {
 	regTestGroup("follower", subTestFollower)
 	regTestGroup("aof", subTestAOF)
 	regTestGroup("monitor", subTestMonitor)
+	regTestGroup("proto", subTestProto)
 	runTestGroups(t)
 }
 

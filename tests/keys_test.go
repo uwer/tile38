@@ -19,12 +19,15 @@ func subTestKeys(g *testGroup) {
 	g.regSubTest("RENAMENX", keys_RENAMENX_test)
 	g.regSubTest("EXPIRE", keys_EXPIRE_test)
 	g.regSubTest("FSET", keys_FSET_test)
+	g.regSubTest("FGET", keys_FGET_test)
 	g.regSubTest("GET", keys_GET_test)
 	g.regSubTest("KEYS", keys_KEYS_test)
 	g.regSubTest("PERSIST", keys_PERSIST_test)
 	g.regSubTest("SET", keys_SET_test)
 	g.regSubTest("STATS", keys_STATS_test)
 	g.regSubTest("TTL", keys_TTL_test)
+	g.regSubTest("EXIST", keys_EXISTS_test)
+	g.regSubTest("FEXIST", keys_FEXISTS_test)
 	g.regSubTest("SET EX", keys_SET_EX_test)
 	g.regSubTest("PDEL", keys_PDEL_test)
 	g.regSubTest("FIELDS", keys_FIELDS_test)
@@ -199,6 +202,47 @@ func keys_FSET_test(mc *mockServer) error {
 		Do("FSET", "mykey2", "myid", "a", "b").Err("key not found"),
 		Do("FSET", "mykey", "myid2", "a", "b").Err("id not found"),
 		Do("FSET", "mykey", "myid", "f2", 0).JSON().OK(),
+		Do("SET", "cases", "lower", "POINT", 1, 2).OK(),
+		Do("FSET", "cases", "lower", "lowercase", 1).JSON().OK(),
+		Do("GET", "cases", "lower", "WITHFIELDS").JSON().Str(
+			`{"ok":true,"object":{"type":"Point","coordinates":[2,1]},"fields":{"lowercase":1}}`,
+		),
+		Do("SET", "cases", "upper", "POINT", 1, 2).OK(),
+		Do("FSET", "cases", "upper", "UPPERCASE", 1).JSON().OK(),
+		Do("GET", "cases", "upper", "WITHFIELDS").JSON().Str(
+			`{"ok":true,"object":{"type":"Point","coordinates":[2,1]},"fields":{"UPPERCASE":1}}`,
+		),
+		Do("SET", "cases", "camel", "POINT", 1, 2).OK(),
+		Do("FSET", "cases", "camel", "camelCase", 1).JSON().OK(),
+		Do("GET", "cases", "camel", "WITHFIELDS").JSON().Str(
+			`{"ok":true,"object":{"type":"Point","coordinates":[2,1]},"fields":{"camelCase":1}}`,
+		),
+		Do("SET", "cases", "allcases", "POINT", 1, 2).OK(),
+		Do("FSET", "cases", "allcases", "UPPERCASE", 1).JSON().OK(),
+		Do("FSET", "cases", "allcases", "lowercase", 1).JSON().OK(),
+		Do("FSET", "cases", "allcases", "camelCase", 1).JSON().OK(),
+		Do("GET", "cases", "allcases", "WITHFIELDS").JSON().Str(
+			`{"ok":true,"object":{"type":"Point","coordinates":[2,1]},"fields":{"UPPERCASE":1,"camelCase":1,"lowercase":1}}`,
+		),
+	)
+}
+func keys_FGET_test(mc *mockServer) error {
+	return mc.DoBatch(
+		Do("SET", "mykey", "myid", "HASH", "9my5xp7").OK(),
+		Do("GET", "mykey", "myid", "WITHFIELDS", "HASH", 7).Str("[9my5xp7]"),
+		Do("FSET", "mykey", "myid", "f1", 105.6).Str("1"),
+		Do("FGET", "mykey", "myid", "f1").Str("105.6"),
+		Do("FSET", "mykey", "myid", "f1", 1.1, "f2", 2.2).Str("2"),
+		Do("FGET", "mykey", "myid", "f2").Str("2.2"),
+		Do("FGET", "mykey", "myid", "f1").Str("1.1"),
+		Do("FGET", "mykey", "myid", "f1").JSON().Str(`{"ok":true,"value":1.1}`),
+		Do("FSET", "mykey", "myid", "f3", "a").Str("1"),
+		Do("FGET", "mykey", "myid", "f3").Str("a"),
+		Do("FGET", "mykey", "myid", "f4").Str("0"),
+		Do("FGET", "mykey", "myid", "f4").JSON().Str(`{"ok":true,"value":0}`),
+		Do("FGET", "mykey", "myid").Err("wrong number of arguments for 'fget' command"),
+		Do("FGET", "mykey2", "myid", "a", "b").Err("key not found"),
+		Do("FGET", "mykey", "myid2", "a", "b").Err("id not found"),
 	)
 }
 func keys_GET_test(mc *mockServer) error {
@@ -409,6 +453,29 @@ func keys_TTL_test(mc *mockServer) error {
 		Do("TTL", "mykey", "myid2").JSON().Err("id not found"),
 	)
 }
+func keys_EXISTS_test(mc *mockServer) error {
+	return mc.DoBatch(
+		Do("SET", "mykey", "myid", "STRING", "value").OK(),
+		Do("EXISTS", "mykey", "myid").Str("1"),
+		Do("EXISTS", "mykey", "myid").JSON().Str(`{"ok":true,"exists":true}`),
+		Do("EXISTS", "mykey", "myid2").Str("0"),
+		Do("EXISTS", "mykey", "myid2").JSON().Str(`{"ok":true,"exists":false}`),
+		Do("EXISTS", "mykey").Err("wrong number of arguments for 'exists' command"),
+		Do("EXISTS", "mykey2", "myid").JSON().Err("key not found"),
+	)
+}
+func keys_FEXISTS_test(mc *mockServer) error {
+	return mc.DoBatch(
+		Do("SET", "mykey", "myid", "FIELD", "f1", "123", "STRING", "value").OK(),
+		Do("FEXISTS", "mykey", "myid", "f1").Str("1"),
+		Do("FEXISTS", "mykey", "myid", "f1").JSON().Str(`{"ok":true,"exists":true}`),
+		Do("FEXISTS", "mykey", "myid", "f2").Str("0"),
+		Do("FEXISTS", "mykey", "myid", "f2").JSON().Str(`{"ok":true,"exists":false}`),
+		Do("FEXISTS", "mykey", "myid").Err("wrong number of arguments for 'fexists' command"),
+		Do("FEXISTS", "mykey2", "myid", "f2").JSON().Err("key not found"),
+		Do("FEXISTS", "mykey", "myid2", "f2").JSON().Err("id not found"),
+	)
+}
 
 func keys_SET_EX_test(mc *mockServer) (err error) {
 	rand.Seed(time.Now().UnixNano())
@@ -468,6 +535,15 @@ func keys_FIELDS_test(mc *mockServer) error {
 		Do("GET", "fleet", "truck1", "WITHFIELDS").JSON().Str(`{"ok":true,"object":{"type":"Point","coordinates":[33,-112]}}`),
 		Do("SET", "fleet", "truck1", "FIELD", "speed", "2", "POINT", "-112", "33").JSON().OK(),
 		Do("GET", "fleet", "truck1", "WITHFIELDS").JSON().Str(`{"ok":true,"object":{"type":"Point","coordinates":[33,-112]},"fields":{"speed":2}}`),
+
+		// Do some whereins queries
+		Do("SET", "whereins", "id1", "FIELD", "test", "2", "POINT", "-112", "33").JSON().OK(),
+		Do("SET", "whereins", "id2", "FIELD", "TEST", "3", "POINT", "-111", "32").JSON().OK(),
+		Do("SET", "whereins", "id3", "FIELD", "teSt", "4", "POINT", "-110", "31").JSON().OK(),
+		Do("SCAN", "whereins", "WHEREIN", "test", "1", "2", "OBJECTS").JSON().Str(`{"ok":true,"fields":["test"],"objects":[{"id":"id1","object":{"type":"Point","coordinates":[33,-112]},"fields":[2]}],"count":1,"cursor":0}`),
+		Do("SCAN", "whereins", "WHEREIN", "TEST", "1", "3", "OBJECTS").JSON().Str(`{"ok":true,"fields":["TEST"],"objects":[{"id":"id2","object":{"type":"Point","coordinates":[32,-111]},"fields":[3]}],"count":1,"cursor":0}`),
+		Do("SCAN", "whereins", "WHEREIN", "teSt", "1", "4", "OBJECTS").JSON().Str(`{"ok":true,"fields":["teSt"],"objects":[{"id":"id3","object":{"type":"Point","coordinates":[31,-110]},"fields":[4]}],"count":1,"cursor":0}`),
+		Do("SCAN", "whereins", "OBJECTS").JSON().Str(`{"ok":true,"fields":["TEST","teSt","test"],"objects":[{"id":"id1","object":{"type":"Point","coordinates":[33,-112]},"fields":[0,0,2]},{"id":"id2","object":{"type":"Point","coordinates":[32,-111]},"fields":[3,0,0]},{"id":"id3","object":{"type":"Point","coordinates":[31,-110]},"fields":[0,4,0]}],"count":3,"cursor":0}`),
 
 		// Do some GJSON queries.
 		Do("SET", "fleet", "truck2", "FIELD", "hello", `{"world":"tom"}`, "POINT", "-112", "33").JSON().OK(),

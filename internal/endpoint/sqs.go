@@ -132,13 +132,13 @@ func newSQSConn(ep Endpoint) *SQSConn {
 func probeSQS(s string) bool {
 	// https://sqs.eu-central-1.amazonaws.com/123456789/myqueue
 	return strings.HasPrefix(s, "https://sqs.") &&
-		strings.Contains(s, ".amazonaws.com/")
+		strings.Contains(s, ".amazonaws.com")
 }
 
 func sqsRegionFromPlainURL(s string) string {
 	parts := strings.Split(s, "https://sqs.")
 	if len(parts) > 1 {
-		parts = strings.Split(parts[1], ".amazonaws.com/")
+		parts = strings.Split(parts[1], ".amazonaws.com")
 		if len(parts) > 1 {
 			return parts[0]
 		}

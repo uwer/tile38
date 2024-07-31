@@ -62,7 +62,7 @@ type commandDetails struct {
 	old *object.Object // previous object, if any
 
 	updated   bool              // object was updated
-	timestamp time.Time         // timestamp when the update occured
+	timestamp time.Time         // timestamp when the update occurred
 	parent    bool              // when true, only children are forwarded
 	pattern   string            // PDEL key pattern
 	children  []*commandDetails // for multi actions such as "PDEL"
@@ -140,6 +140,7 @@ type Server struct {
 	fcup     bool       // follow caught up
 	fcuponce bool       // follow caught up once
 	aofconnM map[net.Conn]io.Closer
+	pubq     pubQueue
 
 	// lua scripts
 	luascripts *lScriptMap
@@ -422,9 +423,12 @@ func Serve(opts Options) error {
 	go s.backgroundExpiring(&bgwg)
 	bgwg.Add(1)
 	go s.backgroundSyncAOF(&bgwg)
+	bgwg.Add(1)
+	go s.startPublishQueue(&bgwg)
 	defer func() {
 		log.Debug("Stopping background routines")
 		// Stop background routines
+		s.stopPublishQueue()
 		s.followc.Add(1) // this will force any follow communication to die
 		s.stopServer.Store(true)
 		if mln != nil {
@@ -867,6 +871,7 @@ func (s *Server) handleInputCommand(client *Client, msg *Message) error {
 				"Connection: close\r\n"+
 				"Content-Length: %d\r\n"+
 				"Content-Type: application/json; charset=utf-8\r\n"+
+				"Access-Control-Allow-Origin: *\r\n"+
 				"\r\n", status, len(res)+2)
 			if err != nil {
 				return err
@@ -946,7 +951,7 @@ func (s *Server) handleInputCommand(client *Client, msg *Message) error {
 
 	if !s.loadedAndReady.Load() {
 		switch msg.Command() {
-		case "output", "ping", "echo":
+		case "output", "ping", "echo", "auth":
 		default:
 			return writeErr("LOADING Tile38 is loading the dataset in memory")
 		}
@@ -965,7 +970,7 @@ func (s *Server) handleInputCommand(client *Client, msg *Message) error {
 
 	var write bool
 
-	if (!client.authd || cmd == "auth") && cmd != "output" {
+	if (!client.authd || cmd == "auth") && cmd != "output" && cmd != "healthz" {
 		if s.config.requirePass() != "" {
 			password := ""
 			// This better be an AUTH command or the Message should contain an Auth
@@ -1024,7 +1029,7 @@ func (s *Server) handleInputCommand(client *Client, msg *Message) error {
 		}
 	case "get", "keys", "scan", "nearby", "within", "intersects", "hooks",
 		"chans", "search", "ttl", "bounds", "server", "info", "type", "jget",
-		"evalro", "evalrosha", "healthz", "role":
+		"evalro", "evalrosha", "healthz", "role", "fget", "exists", "fexists":
 		// read operations
 
 		s.mu.RLock()
@@ -1227,6 +1232,8 @@ func (s *Server) command(msg *Message, client *Client) (
 		res, err = s.cmdBOUNDS(msg)
 	case "get":
 		res, err = s.cmdGET(msg)
+	case "fget":
+		res, err = s.cmdFGET(msg)
 	case "jget":
 		res, err = s.cmdJget(msg)
 	case "jset":
@@ -1237,6 +1244,10 @@ func (s *Server) command(msg *Message, client *Client) (
 		res, err = s.cmdTYPE(msg)
 	case "keys":
 		res, err = s.cmdKEYS(msg)
+	case "exists":
+		res, err = s.cmdEXISTS(msg)
+	case "fexists":
+		res, err = s.cmdFEXISTS(msg)
 	case "output":
 		res, err = s.cmdOUTPUT(msg)
 	case "aof":
@@ -1438,6 +1449,22 @@ func readNextHTTPCommand(packet []byte, argsIn [][]byte, msg *Message, wr io.Wri
 		}
 		method := parts[0]
 		path := parts[1]
+		// Handle CORS request for allowed origins
+		if method == "OPTIONS" {
+			if wr == nil {
+				return false, errors.New("connection is nil")
+			}
+			corshead := "HTTP/1.1 204 No Content\r\n" +
+				"Connection: close\r\n" +
+				"Access-Control-Allow-Origin: *\r\n" +
+				"Access-Control-Allow-Headers: *, Authorization\r\n" +
+				"Access-Control-Allow-Methods: POST, GET, OPTIONS\r\n\r\n"
+
+			if _, err = wr.Write([]byte(corshead)); err != nil {
+				return false, err
+			}
+			return false, nil
+		}
 		if len(path) == 0 || path[0] != '/' {
 			return false, errInvalidHTTP
 		}
@@ -1522,7 +1549,7 @@ func readNextHTTPCommand(packet []byte, argsIn [][]byte, msg *Message, wr io.Wri
 func readNextCommand(packet []byte, argsIn [][]byte, msg *Message, wr io.Writer) (
 	complete bool, args [][]byte, kind redcon.Kind, leftover []byte, err error,
 ) {
-	if packet[0] == 'G' || packet[0] == 'P' {
+	if packet[0] == 'G' || packet[0] == 'P' || packet[0] == 'O' {
 		// could be an HTTP request
 		var line []byte
 		for i := 1; i < len(packet); i++ {

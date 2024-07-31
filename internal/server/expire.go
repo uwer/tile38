@@ -32,6 +32,7 @@ func (s *Server) backgroundExpireObjects(now time.Time) {
 			if nano < o.Expires() {
 				return false
 			}
+			s.statsExpired.Add(1)
 			msgs = append(msgs, &Message{Args: []string{"del", key, o.ID()}})
 			return true
 		})

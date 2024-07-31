@@ -116,7 +116,7 @@ func stringLessInsensitive(a, b string) bool {
 }
 
 // Less return true if a value is less than another value.
-// The caseSensitive paramater is used when the value are Strings.
+// The caseSensitive parameter is used when the value are Strings.
 // The order when comparing two different kinds is:
 //
 //	Null < False < Number < String < True < JSON
@@ -184,9 +184,13 @@ func ValueOf(data string) Value {
 		} else if math.IsNaN(num) {
 			return Value{kind: Number, data: "NaN", num: nan}
 		}
-		return Value{kind: Number, data: data, num: num}
-	}
-	if gjson.Valid(data) {
+		// Make sure that this is a JSON compatible number.
+		// For example, "000123" and "000_123" both parse as floats but aren't
+		// really Numbers that can be represents in JSON.
+		if gjson.Valid(data) {
+			return Value{kind: Number, data: data, num: num}
+		}
+	} else if gjson.Valid(data) {
 		data = strings.TrimSpace(data)
 		r := gjson.Parse(data)
 		switch r.Type {

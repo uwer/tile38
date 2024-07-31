@@ -1,6 +1,6 @@
 package endpoint
 
-// LocalPublisher is used to publish local notifcations
+// LocalPublisher is used to publish local notifications
 type LocalPublisher interface {
 	Publish(channel string, message ...string) int
 }
